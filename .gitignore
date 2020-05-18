@@ -10,3 +10,9 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
+
+# ignore emacs temp files
+*.#*
+# ignore vim temp files
+*.swp
+*.swo
