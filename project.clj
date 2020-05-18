@@ -1,6 +1,6 @@
 (defproject nn-clojure "0.1.0-SNAPSHOT"
   :description "Example neural network (nn) written in clojure."
-  :url "http://example.com/FIXME"
+  :url "https://bitbucket.org/kljohnston/nn-clojure/src/master/"
   :license {:name "MIT License"
             :url "none"
             :year 2020
