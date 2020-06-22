@@ -95,3 +95,29 @@
                                      (s/and (s/coll-of (s/and ::pos int?))
                                             (fn [l] (-> l count (>= 2))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Initialization functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn neuron
+  "Create a new neuron with a given number of inputs."
+  [num-weights]
+  {:post [(vex ::neuron %)]}
+  ;; use rand instead of spec generators so that results are repeatable
+  {::weights (-> num-weights
+                 (repeatedly #(- (rand 2) 1))
+                 (vec))
+   ::bias    (- (rand 2) 1)})
+
+(defn nn
+  "Create a new neural network
+
+  Input is a list where each number represents the number of neurons in that
+  layer (including the input layer)."
+  [neurons-per-layer]
+  {:pre  [(vex (s/and (s/coll-of (s/and ::pos int?))
+                      #(-> % count (>= 2)))
+               neurons-per-layer)]
+   :post [(vex ::nn %)]}
+  (mapv (fn [inputs neurons] (vec (repeatedly neurons #(neuron inputs))))
+        neurons-per-layer
+        (next neurons-per-layer)))
