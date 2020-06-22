@@ -95,6 +95,51 @@
                                      (s/and (s/coll-of (s/and ::pos int?))
                                             (fn [l] (-> l count (>= 2))))))))
 
+(s/def ::seed ::number)
+
+;; use custom generator since default is too slow
+(s/def ::ctx (s/with-gen (s/and (s/keys :req [::nn
+                                              ::learning-rate
+                                              :activation/fn-name]
+                                        :opt [::seed
+                                              :delta/nn
+                                              ::goals
+                                              :activation/nn
+                                              :adjustments/nn
+                                              :train/i-train
+                                              :train/max-train
+                                              :train/target
+                                              :train/examples])
+                                #(or (-> % ::goals nil?)
+                                     (= (-> % ::goals count)
+                                        (-> % ::nn last count)))
+                                #(-> % ::nn count (>= 2)))
+               #(gen/fmap (fn [[inputs outputs]] (ctx inputs outputs))
+                          (s/gen
+                           (s/tuple (s/and ::pos int?)
+                                    (s/and ::pos int?))))))
+
+;;;;; gain finer control over randomness (to make use of seeds)
+(def ^:dynamic *r* (java.util.Random. 42))
+
+(defn rand
+  "Override clojure.core/rand in order to use a dynamically bindable Random
+  generator."
+  ([] (.nextDouble *r*))
+  ([n] (* n (.nextDouble *r*))))
+
+(defn repeatedly
+  "Override clojure.core/repeatedly, original definition is declared static
+  which prevents dynamic rebinding within the repeated function, the lazy
+  sequence version similarly won't allow rebinding of values internal to the
+  function."
+  ([n f]
+   (reduce (fn [acc _] (conj acc (f)))
+           []
+           (take n (repeat nil)))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Initialization functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,3 +166,25 @@
   (mapv (fn [inputs neurons] (vec (repeatedly neurons #(neuron inputs))))
         neurons-per-layer
         (next neurons-per-layer)))
+
+(defn ctx
+  "Create a top level data structure representing the state of the app."
+  ([inputs outputs]
+   (binding [*r* (java.util.Random. 42)]
+     (ctx (flatten [inputs
+                    (repeatedly (-> inputs (/ 500) int inc)
+                                #(-> inputs (/ 50) int inc))
+                    outputs])
+          0.1
+          42)))
+  ([layers learning-rate seed]
+   {:post [(vex ::ctx %)]}
+   (binding [*r* (if seed
+                   (java.util.Random. seed)
+                   (java.util.Random.))]
+     (let [ctx {::nn                 (nn layers)
+                ::learning-rate      learning-rate
+                :activation/fn-name  ::sigmoid}]
+       (if seed
+         (assoc ctx ::seed seed)
+         ctx)))))
