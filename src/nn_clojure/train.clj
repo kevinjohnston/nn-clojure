@@ -284,3 +284,60 @@
          :activation/nn (-> test first vector)))
 
 (declare test)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Public api
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn +training-data
+  "Create training data and add to ctx."
+  [{:keys [::dt/rnd] :as ctx} size ratio & patterns]
+  (letfn [(patterns->data-sets [patterns]
+            ((realize-patterns size) patterns))
+          (reserve-test-data [data-sets]
+            (map #(data-set->split-data % ratio rnd) data-sets))
+          (combine-split-data [split-data]
+            ;; needs to reduce and concat lists
+            (reduce (fn [m1 m2]
+                      (-> m1
+                          (update :train/examples concat (:train/examples m2))
+                          (update :train/tests concat (:train/tests m2))))
+                    {}
+                    split-data))
+          (update-ctx [split-data]
+            (merge ctx split-data))]
+    (-> patterns
+        patterns->data-sets
+        reserve-test-data
+        combine-split-data
+        update-ctx)))
+
+(defn +config
+  "Setup ctx to include needed configuration data for training."
+  [ctx batch-size target]
+  (assoc ctx
+         :train/batch-size batch-size
+         :train/target target))
+
+(defn train
+  "Reducing function used to update ctx via an infinite sequence of training
+  data."
+  ([ctx] (reductions train ctx (training-seq ctx)))
+  ([ctx train-point]
+   (-> (merge ctx train-point)
+       anneal
+       prepare-example
+       forward-propagation
+       record-error
+       backward-propagation
+       step
+       clear)))
+
+(defn test
+  [{:keys [:train/tests] :as ctx}]
+  (reduce (fn [ctx test]
+            (-> ctx
+                (prepare-test test)
+                forward-propagation
+                record-error))
+          (dissoc ctx :train/error)
+          tests))
