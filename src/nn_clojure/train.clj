@@ -1,5 +1,5 @@
 (ns nn-clojure.train
-  "TODO create namespace doc"
+  "Functions used to train a neural network."
   (:require
    [clojure.spec.alpha :as s]
    [nn-clojure.datatypes :as dt]
@@ -333,6 +333,7 @@
        clear)))
 
 (defn test
+  "Tests a trained network to determine final success."
   [{:keys [:train/tests] :as ctx}]
   (reduce (fn [ctx test]
             (-> ctx
