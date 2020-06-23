@@ -172,3 +172,50 @@
   (* (sigmoid x)
      (- 1 (sigmoid x))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Forward propagation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helper functions
+(defn- push-layer-results
+  [ctx {:keys [:activation/layer ::dt/total-inputs] :as fire-layer-results}]
+  (-> ctx
+      (update :activation/nn conj layer)
+      (update ::dt/total-inputs-nn conj total-inputs)))
+
+;;;;; Activation functions and derivatives
+(defmethod  activation ::dt/sigmoid [_ total-input]  (sigmoid total-input))
+(defmethod dActivation ::dt/sigmoid [_ total-input] (dSigmoid total-input))
+
+;;;;; Domain functions
+(defn- fire
+  "Fire a neuron."
+  [{::dt/keys [weights bias] :as neuron} inputs act-name]
+  {:pre  [(vex ::dt/neuron neuron)
+          (vex :activation/layer inputs)
+          (vex :activation/fn-name act-name)]
+   :post [(vex ::dt/total-input (::dt/total-input %))
+          (vex ::dt/activation (::dt/activation %))]}
+  (let [total-input (+ (dot weights inputs) bias)]
+    {::dt/total-input total-input
+     ::dt/activation   (activation act-name total-input)}))
+
+(defn- fire-layer
+  "Fire a layer of neurons."
+  [act-name inputs neurons]
+  {:pre  [(vex ::dt/layer neurons)
+          (vex :activation/layer inputs)
+          (vex :activation/fn-name act-name)]
+   :post [(vex ::dt/total-inputs (::dt/total-inputs %))
+          (vex :activation/layer (:activation/layer %))]}
+  (let [fire #(fire %1 %2 act-name)]
+    (reduce (fn [m [neuron inputs]]
+              (let [{::dt/keys [total-input activation]} (fire neuron inputs)]
+                (-> m
+                    (update ::dt/total-inputs conj total-input)
+                    (update :activation/layer conj activation))))
+            {::dt/total-inputs [] :activation/layer []}
+            (map vector neurons (repeat inputs)))))
+
+;;;;; Public functions
+(declare forward-propagation)
+
