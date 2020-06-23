@@ -190,3 +190,38 @@
   (let [pattern (-> ctx :train/example last)]
     (update-in ctx [:train/error pattern] (partial update-err ctx))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Step functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn- sum-adjustments
+  [s1 s2]
+  (cond
+    (vector? s1) (mapv sum-adjustments s1 s2)
+    (map? s1)    (merge-with sum-adjustments s1 s2)
+    (number? s1) (+ s1 s2)))
+
+(defn- avg-adjustments
+  [s size]
+  (cond
+    (vector? s) (mapv #(avg-adjustments % size) s)
+    (map? s)    (update-all s #(avg-adjustments % size))
+    (number? s) (/ s size)))
+
+(defn- +backprop-results
+  [ctx]
+  (update ctx :train/batch-adj conj (-> ctx :adjustments/nn vec)))
+
+(defn- avg-batch
+  [ctx]
+  (let [summation  (reduce sum-adjustments (:train/batch-adj ctx))
+        batch-size (count (:train/batch-adj ctx))
+        average    (avg-adjustments summation batch-size)]
+    (-> ctx
+        (dissoc :train/batch-adj)
+        (assoc ::dt/nn (vec average)))))
+
+(defn- step
+  [ctx]
+  (-> ctx
+      +backprop-results
+      (do-if completed-batch? avg-batch)))
