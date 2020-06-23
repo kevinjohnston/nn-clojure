@@ -225,3 +225,62 @@
   (-> ctx
       +backprop-results
       (do-if completed-batch? avg-batch)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Clear functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn clear
+  [ctx]
+  (-> ctx
+      ;; maybe change this to drop-keys
+      (select-keys [::dt/nn
+                    ;;:activation/nn
+                    :activation/fn-name
+                    ::dt/goals
+                    ::dt/learning-rate
+                    ;;::dt/rnd
+
+                    :train/batch-size
+                    :train/epoch
+                    :train/epochs
+                    :train/batch
+                    :train/target
+                    :train/error
+                    :train/tests
+                    :train/examples
+                    :train/batch-adj
+
+                    :train/annealing-fn
+                    :train/eval-fn
+                    :train/max-epochs
+                    :train/buffer
+                    ])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Preparation functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn- prepare-example
+  [ctx]
+  (assoc ctx
+         :train/example (train-point->example ctx)
+         ::dt/goals     (train-point->goals   ctx)
+         :activation/nn (train-point->input   ctx)))
+
+(defn- anneal
+  "Updates the learning rate via an annealing-fn if defined."
+  [{:train/keys [annealing-fn] :as ctx}]
+  (if annealing-fn
+    (update ctx ::dt/learning-rate min (-> ctx avg-err annealing-fn))
+    ctx))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Testing functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn- prepare-test
+  [ctx test]
+  (assoc ctx
+         :train/example test
+         ::dt/goals     (-> test second)
+         :activation/nn (-> test first vector)))
+
+(declare test)
