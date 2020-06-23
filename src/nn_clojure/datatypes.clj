@@ -157,6 +157,46 @@
                            (s/tuple (s/and ::pos int?)
                                     (s/and ::pos int?))))))
 
+;; data types used when training
+(s/def :train/domain (s/and ::number #(<= 0.0 % 1.0)))
+(s/def :train/inputs (s/coll-of :train/domain))
+(s/def :train/range-up (s/coll-of :train/domain))
+(s/def :train/range-down (s/coll-of :train/domain))
+(s/def :train/goal ::goals)
+(s/def :train/pattern (s/keys :req [:train/inputs
+                                    :train/range-up
+                                    :train/range-down
+                                    :train/goal]))
+(s/def :train/ratio :train/domain)
+(s/def :train/data-point (s/coll-of :train/domain :kind vector?))
+(s/def :train/data-set map?)
+(s/def :train/example (s/tuple :train/data-point
+                               :train/goal
+                               :train/pattern))
+(s/def :train/examples (s/coll-of :train/example))
+(s/def :train/tests :train/examples)
+(s/def :train/split-data (s/keys :req [:train/examples :train/tests]))
+
+(s/def :train/epoch (s/coll-of :train/examples))
+(s/def :train/epochs (s/and ::number int?))
+(s/def :train/batch-size (s/and ::number pos? int?))
+
+(s/def :train/batch :train/examples)
+(s/def :train/lesson :train/example)
+(s/def :train/max-train (s/and ::number int?))
+(s/def :train/i-train (s/and ::number int?))
+(s/def :train/error map?)
+(s/def :train/target :train/domain)
+
+;; possible datatypes
+(s/def :train/point (s/keys :req [:train/epoch
+                                  :train/batch
+                                  :train/example
+                                  :train/epochs]))
+(s/def :train/seq (s/coll-of :train/point :kind seq?))
+
+
+
 ;;;;; gain finer control over randomness (to make use of seeds)
 (def ^:dynamic *r* (java.util.Random. 42))
 
