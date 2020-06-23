@@ -117,7 +117,7 @@
 
 (defn- next-example
   [train-point]
-  #_{:pre  [(vex :train/point train-point)]
+  {:pre  [(vex :train/point train-point)]
    :post [(vex :train/point %)]}
   {:train/epoch   (-> train-point :train/epoch)
    :train/batch   (-> train-point :train/batch next)
@@ -126,7 +126,7 @@
 
 (defn- next-batch
   [train-point]
-  #_{:pre  [(vex :train/point train-point)]
+  {:pre  [(vex :train/point train-point)]
    :post [(vex :train/point %)]}
   {:train/epoch   (-> train-point :train/epoch next)
    :train/batch   (-> train-point :train/epoch next first)
@@ -145,4 +145,48 @@
   ([ctx train-point]
    (lazy-seq (cons train-point
                    (training-seq ctx (next-train-point ctx train-point))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Error functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; helper functions
+(defn max-err
+  "Return the maximum average error across all patterns. If no error exist to be
+  averaged positive infinity is returned."
+  [{:train/keys [error] :as ctx}]
+  (if (not-empty error)
+    (apply max (->> error vals (map :train/avg)))
+    ##Inf))
+
+(defn avg-err
+  "Return the average error across all patterns. If no error exist to be
+  averaged positive infinity is returned."
+  [{:train/keys [error] :as ctx}]
+  (if (not-empty error)
+    (avg (->> error vals (map :train/avg)))
+    ##Inf))
+
+;;;;; error functions
+(defn- update-err
+  [{:train/keys [max-raw-data] :as ctx}
+   {data-avg   :train/avg
+    data-min   :train/min
+    data-max   :train/max
+    data-raw   :train/raw
+    data-count :train/count
+    :as err}]
+  (let [max-raw-data (or max-raw-data max-raw-data-num)
+        new-err      (total-error ctx)
+        data-raw     (conj (or data-raw []) new-err)]
+  {:train/avg   (mean data-raw)
+   :train/min   (min (or data-min 1) new-err)
+   :train/max   (max (or data-max 0) new-err)
+   :train/std   (when (> (count data-raw) 1) (std-dev data-raw))
+   :train/count (inc (or data-count (count data-raw)))
+   :train/raw   (take max-raw-data-num data-raw)}))
+
+(defn- record-error
+  [{:train/keys [error max-raw-data] :as ctx}]
+  (let [pattern (-> ctx :train/example last)]
+    (update-in ctx [:train/error pattern] (partial update-err ctx))))
 

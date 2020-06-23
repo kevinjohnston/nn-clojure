@@ -12,7 +12,7 @@
       types in generic programming level abstractions.
       example:
         ::pos - a positive finite integer
-  
+
     - latteral -- these define types that are needed in the process of
       modeling the domain process but aren't strictly part of the domain these
       types tend to exist parallel to domain types or contain them but never be
@@ -20,21 +20,21 @@
       example:
         ::ctx - a hashmap used to contain domain types and other information
           that gets passed through the modeled
-  
+
   Domain types:
     - primitives -- these define atomic domain types that will be aggregated
       into larger domain types.
       example:
         ::weight -- an integer representing the strength of connection between
           two neurons
-  
+
     - composites -- these define types that are strictly composed of
       primitives, other domain composites, or combinations of both (e.g.
       neuron, layer, etc)
       example:
         ::neuron -- a hashmap that contains ::weight, ::bias and at times other
           domain information."
-      
+
   (:require
    [nn-clojure.util :refer :all]
    [clojure.spec.alpha :as s]
