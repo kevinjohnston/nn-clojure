@@ -93,4 +93,56 @@
     {:train/examples training-examples
      :train/tests    test-examples}))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Training point functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn- completed-batch?
+  [train-point]
+  (-> train-point :train/batch next nil?))
+
+(defn- completed-epoch?
+  [train-point]
+  (and (-> train-point :train/epoch next nil?)
+       (completed-batch? train-point)))
+
+(defn- next-epoch
+  [{:train/keys [epoch epochs batch batch-size examples]
+    ::dt/keys   [rnd]
+    :as ctx}]
+  (let [epoch (partition-all batch-size (shuffle examples rnd))]
+    {:train/epoch   epoch
+     :train/batch   (-> epoch first)
+     :train/example (-> epoch first first)
+     :train/epochs  (inc (or epochs -1))}))
+
+(defn- next-example
+  [train-point]
+  #_{:pre  [(vex :train/point train-point)]
+   :post [(vex :train/point %)]}
+  {:train/epoch   (-> train-point :train/epoch)
+   :train/batch   (-> train-point :train/batch next)
+   :train/example (-> train-point :train/batch next first)
+   :train/epochs  (-> train-point :train/epochs)})
+
+(defn- next-batch
+  [train-point]
+  #_{:pre  [(vex :train/point train-point)]
+   :post [(vex :train/point %)]}
+  {:train/epoch   (-> train-point :train/epoch next)
+   :train/batch   (-> train-point :train/epoch next first)
+   :train/example (-> train-point :train/epoch next first first)
+   :train/epochs  (-> train-point :train/epochs)})
+
+(defn- next-train-point
+  [ctx train-point]
+  (cond
+    (completed-epoch? train-point) (-> train-point (merge ctx) next-epoch)
+    (completed-batch? train-point) (-> train-point next-batch)
+    :default                       (-> train-point next-example)))
+
+(defn- training-seq
+  ([ctx] (training-seq ctx (next-epoch ctx)))
+  ([ctx train-point]
+   (lazy-seq (cons train-point
+                   (training-seq ctx (next-train-point ctx train-point))))))
 
