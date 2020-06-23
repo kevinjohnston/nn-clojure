@@ -300,3 +300,42 @@
 ;;;;; Public functions
 (declare backward-propagation)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Public API
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn forward-propagation
+  "Fire all neurons in the network and record activations and total inputs
+  along the way."
+  [{layers      ::dt/nn
+    act-fn-name :activation/fn-name
+    activations :activation/nn :as ctx}]
+  {:pre  [(vex ::dt/ctx ctx)
+          (vex :activation/nn activations)]
+   :post [(vex ::dt/ctx %)]}
+  (reduce (fn [ctx layer]
+            (->> layer
+                 (fire-layer act-fn-name (-> ctx :activation/nn peek))
+                 (push-layer-results ctx)))
+          (assoc ctx ::dt/total-inputs-nn [])
+          layers))
+
+(defn backward-propagation
+  "Evaluate the network's outputs with respect to its goals recording the new
+  weights and biased to be assigned if updating to the next step along a
+  gradient descent."
+  [ctx]
+  {:pre  [(vex ::dt/ctx ctx)
+          (vex ::dt/goals (-> ctx ::dt/goals))
+          (vex ::dt/learning-rate (-> ctx ::dt/learning-rate))]
+   :post [(vex ::dt/ctx %)]}
+  (reduce record-layer-step
+          ctx
+          (-> ctx num-layers range next reverse)))
+
+(defn total-error
+  "Measurement of the error for all output neurons."
+  [{:keys [::dt/goals :activation/nn] :as ctx}]
+  {:pre  [(vex ::dt/ctx ctx)]
+   :post [(vex ::dt/number %)]}
+  (sum (map error goals (last nn))))
+  
