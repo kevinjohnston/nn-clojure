@@ -219,3 +219,84 @@
 ;;;;; Public functions
 (declare forward-propagation)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Back propagation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Domain functions
+(defn- bias-adj
+  [{:keys [::dt/learning-rate] :as ctx} i j k]
+  {:pre  [(vex ::dt/ctx ctx)
+          (<= 0 i (num-layers ctx))
+          (<= 0 j (num-neurons-in-layer ctx i))
+          (<= 0 k (num-neurons-in-layer ctx (dec i)))]
+   :post [(vex :adjustments/bias %)]}
+  (case (type-of-layer ctx i)
+    ::input  (throw (ex-info (str "Attempted to calculate bias adjustment for"
+                                  " input layer (inputs have no preceeding"
+                                  " layer for a bias to influence).")
+                             {:ctx ctx}))
+    ::output (limit-range (- (bias ctx i j)
+                             (* learning-rate (dE|dB ctx i j k)))
+                          1.0 -1.0)
+    ::hidden (limit-range (- (bias ctx i j)
+                             (* learning-rate (dE+|dBl ctx i j k)))
+                          1.0 -1.0)))
+
+(defn- weight-adj
+  [{:keys [::dt/learning-rate :activation/nn] :as ctx} i j k]
+  {:pre  [(vex ::dt/ctx ctx)
+          (<= 0 i (num-layers ctx))
+          (<= 0 j (num-neurons-in-layer ctx i))
+          (<= 0 k (num-neurons-in-layer ctx (dec i)))]
+   :post [(vex :adjustments/weight %)]}
+  (case (type-of-layer ctx i)
+    ::input  (throw (ex-info (str "Attempted to calculate weight adjustment for"
+                                  " input layer (inputs have no preceeding"
+                                  " layer to adjust the weights of).")
+                             {:ctx ctx}))
+    ::output (- (weight ctx i j k)
+                (* learning-rate (dE|dW ctx i j k)))
+    ::hidden (- (weight ctx i j k)
+                (* learning-rate (dE+|dWl ctx i j k)))))
+
+(defn- layer-adjustments
+  [ctx i]
+  {:pre  [(vex ::dt/ctx ctx) (<= 1 i (num-layers ctx))]
+   :post [(vex :adjustments/layer %)]}
+  (let [num-cur-layer-neurons  (num-neurons-in-layer ctx i)
+        num-prev-layer-neurons (num-neurons-in-layer ctx (dec i))
+
+        ;; collect weight adjustments
+        weight-adjustments     (for [j (range num-cur-layer-neurons)]
+                                 ;; get weight adj vector for each neuron
+                                 {::dt/weights
+                                  (vec (for [k (range num-prev-layer-neurons)]
+                                         ;; get weight adj for each neuron pair
+                                         (weight-adj ctx i j k)))})
+        ;; collect bias adjustments
+        bias-adjustments       (for [j (range num-cur-layer-neurons)]
+                                 {::dt/bias (bias-adj ctx i j _)})]
+    (mapv merge weight-adjustments bias-adjustments)))
+
+(defn- deltas
+  [ctx i]
+  {:pre  [(vex ::dt/ctx ctx) (<= 0 i (num-layers ctx))]
+   :post [(vex :delta/layer %)]}
+  (let [delta-rule (case (type-of-layer ctx i)
+                     ::output dE|dZ
+                     ::hidden (chain dE+|dAl dAl|dZl))]
+    (mapv delta-rule
+          (repeat ctx)
+          (repeat i)
+          (range (num-neurons-in-layer ctx i))
+          (repeat _))))
+
+(defn- record-layer-step
+  [ctx i]
+  (-> ctx
+      (update :adjustments/nn conj (layer-adjustments ctx i))
+      (update :delta/nn       conj (deltas ctx i))))
+
+;;;;; Public functions
+(declare backward-propagation)
+
