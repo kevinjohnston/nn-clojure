@@ -1,5 +1,40 @@
 (ns nn-clojure.datatypes
-  "TODO create namespace doc"
+  "Define datatypes and, when necessary, generators.
+
+  This file exists to give a clear specification of the otherwise typeless
+  parameters used in functions throughout the program.
+
+  These types fit into several major cateogries
+  Non-domain types:
+    - precursors -- these types define things that aren't specifically related
+      to neural networks but get used by later types. these types tend to be
+      more primitive than even domain primitives and get used to define domain
+      types in generic programming level abstractions.
+      example:
+        ::pos - a positive finite integer
+  
+    - latteral -- these define types that are needed in the process of
+      modeling the domain process but aren't strictly part of the domain these
+      types tend to exist parallel to domain types or contain them but never be
+      contained by them.
+      example:
+        ::ctx - a hashmap used to contain domain types and other information
+          that gets passed through the modeled
+  
+  Domain types:
+    - primitives -- these define atomic domain types that will be aggregated
+      into larger domain types.
+      example:
+        ::weight -- an integer representing the strength of connection between
+          two neurons
+  
+    - composites -- these define types that are strictly composed of
+      primitives, other domain composites, or combinations of both (e.g.
+      neuron, layer, etc)
+      example:
+        ::neuron -- a hashmap that contains ::weight, ::bias and at times other
+          domain information."
+      
   (:require
    [nn-clojure.util :refer :all]
    [clojure.spec.alpha :as s]
@@ -34,7 +69,8 @@
 (declare ctx)
 (declare gen)
 
-;;;;; specs
+;;;;; non-domain types
+;;; precursors
 ;; define numbers excluding ##NaN ##Inf ##-Inf
 (s/def ::number (s/and number? #(Double/isFinite %)))
 (s/def ::even (s/with-gen even?
@@ -43,7 +79,8 @@
                #(s/gen (s/and ::number pos?))))
 (s/def ::not-neg (s/with-gen >=0
                    #(s/gen (s/and ::number >=0))))
-
+;;;;; domain types
+;;; primitives
 (s/def ::weight ::number)
 (s/def ::weights (s/and (s/coll-of ::weight :kind vector?) not-empty))
 (s/def ::bias ::number)
@@ -68,6 +105,7 @@
 
 (s/def ::learning-rate ::pos)
 
+;;; composites
 (s/def ::neuron (s/keys :req [::weights ::bias]))
 (s/def ::layer (s/and (s/coll-of ::neuron :kind vector?)
                       not-empty
