@@ -113,3 +113,62 @@
   i.e. the 'total-input'."
   (fn [type _] type))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Math functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Helpers
+(defn- chain
+  "Chain rule for partial derivatives"
+  [& partials]
+  (fn [ctx i j k]
+    (->> ((apply juxt partials) ctx i j k)
+         (reduce *))))
+
+;;;;; Partial derivatives
+;;; output layer
+(defn- dE|dA   [ctx i j k] (* -1 (- (goal ctx j) (output ctx i j))))
+(defn- dA|dZ   [ctx i j k]
+  (dActivation (:activation/fn-name ctx) (total-input ctx i j)))
+(defn- dZ|dW   [ctx i j k] (output ctx (dec i) k))
+(defn- dZ|dB   [ctx i j k] 1)
+(defn- dE|dB   [ctx i j k] ((chain dE|dA dA|dZ dZ|dB) ctx i j k))
+(defn- dE|dW   [ctx i j k] ((chain dE|dA dA|dZ dZ|dW) ctx i j k))
+
+;;; hidden layer
+(defn- dE|dZ   [ctx i j k]
+  (case (type-of-layer ctx i)
+    ::output (* (dE|dA ctx i j k)
+                (dA|dZ ctx i j k))
+    ::hidden (let [next-layer-deltas  (layer-deltas ctx (inc i))
+                   next-layer-weights (weights-from-neuron ctx i j k)]
+               (dot next-layer-deltas next-layer-weights))))
+(defn- dZ|dAl  [ctx i j k] (weight ctx i j k))
+(defn- dE+|dAl [ctx i j k]
+  ;; because weights are stored on the neurons recieving inputs we need
+  ;; to "switch perspective" to the next layer (i.e. inc i) and gather
+  ;; the relevant weight from each of those neurons
+  (let [i  (inc i)
+        js (range (num-neurons-in-layer ctx i))
+        k  j]
+    (dot (mapv #(dE|dZ  ctx i % k) js)
+         (mapv #(dZ|dAl ctx i % k) js))))
+(defn- dAl|dZl [ctx i j k] (dA|dZ ctx i j k))
+(defn- dZl|dWl [ctx i j k] (dZ|dW ctx i j k))
+(defn- dZl|dBl [ctx i j k] (dZ|dB ctx i j k))
+(defn- dE+|dWl [ctx i j k] ((chain dE+|dAl dAl|dZl dZl|dWl) ctx i j k))
+(defn- dE+|dBl [ctx i j k] ((chain dE+|dAl dAl|dZl dZl|dBl) ctx i j k))
+(defn- sigmoid
+  "e^x / (e^x + 1)"
+  [x]
+  {:pre  [(vex ::dt/total-input x)]
+   :post [(vex :activation/sigmoid %)]}
+  (/ (Math/pow Math/E x)
+     (+ 1 (Math/pow Math/E x))))
+(defn- dSigmoid
+  "sigmoid(x) * {1 - sigmoid(x)}"
+  [x]
+  {:pre  [(vex ::dt/total-input x)]
+   :post [(vex ::dt/number %)]}
+  (* (sigmoid x)
+     (- 1 (sigmoid x))))
+
