@@ -35,56 +35,133 @@
      ::dt/learning-rate  nil
      :activation/fn-name ::dt/sigmoid
      :train/max-epochs   nil
+     :train/min-epochs   nil
      :train/buffer       1.0
-     :train/eval-fn      (fn [{:train/keys [buffer target] :as ctx} & [training]]
-                           (< (* (if training
-                                   buffer
-                                   1)
-                                 (tr/max-err ctx))
-                              target))
-     :train/batch-size   4
+     :train/eval-fn      #(< (tr/max-err %) 0.1)
      ::dt/rnd            (java.util.Random.)
+     :train/batch-size   nil
      :train/target       nil
      :train/max-raw-data 10}
     conf-quick)))
 
+(def size "The number of data points to generated from each pattern" 2)
+(def ratio "Ratio of generated data held back for testing" 0.5)
+(def batch-size "The number of data points used in each training batch" 4)
+(def target "The target error rate" 0.01)
+
 ;;;;; training data
 ;;; xor
-(def xor-examples  '([[0 0] [0] :00->0]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [0] :11->0]))
-(def xor-tests     '([[0 0] [0] :00->0]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [0] :11->0]))
+(def xor-pattern-00 {:train/inputs     [0 0]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0.0]
+                     :train/goal       [0]})
+(def xor-pattern-01 {:train/inputs     [0 1]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0]
+                     :train/goal       [1]})
+(def xor-pattern-10 {:train/inputs     [1 0]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0.0]
+                     :train/goal       [1]})
+(def xor-pattern-11 {:train/inputs     [1 1]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0]
+                     :train/goal       [0]})
+
+(def +xor-training-data
+  (fn [ctx]
+    (-> ctx
+        (tr/+config batch-size)
+        (tr/+training-data size
+                           ratio
+                           xor-pattern-00
+                           xor-pattern-01
+                           xor-pattern-10
+                           xor-pattern-11))))
 ;;; and
-(def and-examples  '([[0 0] [0] :00->0]
-                     [[0 1] [0] :01->0]
-                     [[1 0] [0] :10->0]
-                     [[1 1] [1] :11->1]))
-(def and-tests     '([[0 0] [0] :00->0]
-                     [[0 1] [0] :01->0]
-                     [[1 0] [0] :10->0]
-                     [[1 1] [1] :11->1]))
+(def and-pattern-00 {:train/inputs     [0 0]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0.0]
+                     :train/goal       [0]})
+(def and-pattern-01 {:train/inputs     [0 1]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0]
+                     :train/goal       [0]})
+(def and-pattern-10 {:train/inputs     [1 0]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0.0]
+                     :train/goal       [0]})
+(def and-pattern-11 {:train/inputs     [1 1]
+                     :train/range-down [0.0 0.0]
+                     :train/range-up   [0.0 0]
+                     :train/goal       [1]})
+
+(def +and-training-data
+  (fn [ctx]
+    (-> ctx
+        (tr/+config batch-size)
+        (tr/+training-data size
+                           ratio
+                           and-pattern-00
+                           and-pattern-01
+                           and-pattern-10
+                           and-pattern-11))))
 ;;; or
-(def or-examples   '([[0 0] [0] :00->0]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [1] :11->1]))
-(def or-tests      '([[0 0] [0] :00->0]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [1] :11->1]))
+(def or-pattern-00 {:train/inputs     [0 0]
+                    :train/range-down [0.0 0.0]
+                    :train/range-up   [0.0 0.0]
+                    :train/goal       [0]})
+(def or-pattern-01 {:train/inputs     [0 1]
+                    :train/range-down [0.0 0.0]
+                    :train/range-up   [0.0 0]
+                    :train/goal       [1]})
+(def or-pattern-10 {:train/inputs     [1 0]
+                    :train/range-down [0.0 0.0]
+                    :train/range-up   [0.0 0.0]
+                    :train/goal       [1]})
+(def or-pattern-11 {:train/inputs     [1 1]
+                    :train/range-down [0.0 0.0]
+                    :train/range-up   [0.0 0]
+                    :train/goal       [1]})
+
+(def +or-training-data
+  (fn [ctx]
+    (-> ctx
+        (tr/+config batch-size)
+        (tr/+training-data size
+                           ratio
+                           or-pattern-00
+                           or-pattern-01
+                           or-pattern-10
+                           or-pattern-11))))
 ;;; nand
-(def nand-examples '([[0 0] [1] :00->1]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [0] :11->0]))
-(def nand-tests    '([[0 0] [1] :00->1]
-                     [[0 1] [1] :01->1]
-                     [[1 0] [1] :10->1]
-                     [[1 1] [0] :11->0]))
+(def nand-pattern-00 {:train/inputs     [0 0]
+                      :train/range-down [0.0 0.0]
+                      :train/range-up   [0.0 0.0]
+                      :train/goal       [1]})
+(def nand-pattern-01 {:train/inputs     [0 1]
+                      :train/range-down [0.0 0.0]
+                      :train/range-up   [0.0 0]
+                      :train/goal       [1]})
+(def nand-pattern-10 {:train/inputs     [1 0]
+                      :train/range-down [0.0 0.0]
+                      :train/range-up   [0.0 0.0]
+                      :train/goal       [1]})
+(def nand-pattern-11 {:train/inputs     [1 1]
+                      :train/range-down [0.0 0.0]
+                      :train/range-up   [0.0 0]
+                      :train/goal       [0]})
+
+(def +nand-training-data
+  (fn [ctx]
+    (-> ctx
+        (tr/+config batch-size)
+        (tr/+training-data size
+                           ratio
+                           nand-pattern-00
+                           nand-pattern-01
+                           nand-pattern-10
+                           nand-pattern-11))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,38 +189,19 @@
   (let [ctx          (tr/test ctx)
         epochs       (-> ctx :train/epochs)]
     (str  "Training "
-          (if (eval-fn ctx false)
+          (if (eval-fn ctx)
             "SUCCEEDED"
             "FAILED")
           " after " epochs " epochs.")))
 
+(def xor
+  (merge (ctx) conf-quick))
+
 (defn -main
   [& args]
-  (let [ctx  (merge (ctx) conf-quick)
-        xor  (merge ctx
-                    {:train/examples xor-examples
-                     :train/tests    xor-tests})
-
-        or   (merge ctx
-                    {:train/examples or-examples
-                     :train/tests    or-tests})
-
-        and  (merge ctx
-                    {:train/examples and-examples
-                     :train/tests    and-tests})
-
-        nand (merge ctx
-                    {:train/examples nand-examples
-                     :train/tests    nand-tests})]
-
-    (and
-     (pmap (fn [[ctx msg]]
-             (->> ctx
-                  (result)
-                  (evaluate-training)
-                  (println msg)))
-           [[xor  "XOR: "]
-            [or   "OR:  "]
-            [and  "AND: "]
-            [nand "NAND:"]])
-     :finished)))
+  (let [ctx  (merge (ctx) conf-quick)]
+    (->> ctx
+         +xor-training-data
+         train
+         evaluate-training
+         println)))

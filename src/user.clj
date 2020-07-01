@@ -49,30 +49,6 @@
    ::dt/learning-rate  0.1,
    :activation/fn-name :nn-clojure.datatypes/sigmoid})
 
-(def xor-00
-  {:train/inputs [0 0]
-   :train/range-down [0.0 0.0]
-   :train/range-up [0.0 0.0]
-   :train/goal [0]})
-
-(def xor-01
-  {:train/inputs [0 1]
-   :train/range-down [0.0 0.0]
-   :train/range-up [0.0 0]
-   :train/goal [1]})
-
-(def xor-10
-  {:train/inputs [1 0]
-   :train/range-down [0.0 0.0]
-   :train/range-up [0.0 0.0]
-   :train/goal [1]})
-
-(def xor-11
-  {:train/inputs [1 1]
-   :train/range-down [0.0 0.0]
-   :train/range-up [0.0 0]
-   :train/goal [0]})
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Configuration examples
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -81,14 +57,16 @@
 (def config-ctx xor-2421-ctx)
 (def config1 (-> config-ctx
                  (assoc ::dt/learning-rate  0.01
+                        ;; 0.00005
                         :activation/fn-name ::dt/sigmoid)
-                 (tr/+config 4 0.00005)
-                 (tr/+training-data 2 0.5 xor-00 xor-01 xor-10 xor-11)))
+                 (tr/+config 4)
+                 (tr/+training-data 2 0.5 xor-pattern-00 xor-pattern-01 xor-pattern-10 xor-pattern-11)))
 (def config2 (-> config-ctx
                  (assoc ::dt/learning-rate  1.5
+                        ;; 0.01
                         :activation/fn-name ::dt/sigmoid)
-                 (tr/+config 1 0.01)
-                 (tr/+training-data 2 0.5 xor-00 xor-01 xor-10 xor-11)))
+                 (tr/+config 1)
+                 (tr/+training-data 2 0.5 xor-pattern-00 xor-pattern-01 xor-pattern-10 xor-pattern-11)))
 ;;(def config3 (gen/config ctx))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
