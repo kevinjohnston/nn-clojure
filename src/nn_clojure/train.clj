@@ -253,6 +253,7 @@
                     :train/annealing-fn
                     :train/eval-fn
                     :train/max-epochs
+                    :train/min-epochs
                     :train/buffer
                     ])))
 

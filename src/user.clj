@@ -172,28 +172,12 @@
   ([]
    (let [eval-fn #(< (tr/max-err %) 0.1)
          ctx (merge (setup) {:train/eval-fn eval-fn
-                             :train/max-epochs 4000})
-         trained-on (tr/train ctx)
-         _ (println "trained once: " trained-on)
-         _ (println (str "res: " (drop-while
-                             not-finished ;; (not-finished ctx)
-                             (tr/train ctx))))
-         {time-str :str result :result} (with-out-str-data-map
-                                          (time (first (drop-while
-                                                        not-finished
-                                                        ;; (not-finished ctx)
-                                                        (tr/train ctx)))))
-         time-str (remove-formatting time-str)]
-     (str (evaluate-training result eval-fn) " " time-str))))
-
-;; (pmap (fn [i] (avg (test-ex (xor-train)))) (range 8))
-
-;; compare
-;; (pmap (fn [i] (avg (test-ex (hard-coded-train 0 1000)))) (range 4))
-;; (pmap (fn [i] (avg (test-ex (xor-train)))) (range 4))
-;; (pmap (fn [i] (avg (xor-train2))) (range 8))
-
-;; (pmap (fn [i] (-> (xor-train2) test-ex)) (range 1))
+                             :train/target        0.01
+                             :train/min-epochs    1
+                             :train/max-epochs 4000})]
+     (->> ctx
+          train
+          evaluate-training))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Repl exploratory functions

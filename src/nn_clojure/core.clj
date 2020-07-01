@@ -16,10 +16,14 @@
 (def conf-quick "Merge with a ctx when training a neural network for quick and dirty results."
   {::dt/learning-rate        1.5
    :train/max-epochs      4000
+   :train/min-epochs         1
+   :train/batch-size         4
    :train/target             0.01})
 (def conf-accurate "Merge with a ctx when training a neural network for accurate results."
   {::dt/learning-rate        0.01
    :train/max-epochs  10000000
+   :train/min-epochs         1
+   :train/batch-size         4
    :train/target             0.0001})
 
 (defn ctx
@@ -86,25 +90,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn not-finished
-  [{:train/keys [epochs target max-epochs eval-fn] :as ctx}]
-  (if-let [epochs epochs]
-    (not (or (eval-fn ctx true)
-             (> epochs max-epochs)))
-    true))
+(defn finished
+  [{:train/keys [epochs target max-epochs min-epochs eval-fn] :as ctx}]
+  (if (or (nil? epochs) (< epochs min-epochs))
+    false
+    (or (#(< (tr/max-err %) target) ctx)
+        (> epochs max-epochs))))
 
-(defn result
+(def not-finished (comp not finished))
+
+(defn train
   [{:train/keys [eval-fn] :as ctx}]
-  (let [#_{time-str :str result :result} #_(with-out-str-data-map
-                                         (time (first (drop-while
-                                                       (not-finished ctx)
-                                                       (tr/train ctx)))))
-        time-str "nope"
-        result (first (drop-while
-                       not-finished
-                       (tr/train ctx)))
-        time-str (remove-formatting time-str)]
-    (assoc result :time time-str)))
+  (first (drop-while
+          not-finished
+          (tr/train ctx))))
 
 (defn evaluate-training
   "Use an evaluation function to determine if training was successful. Return a
