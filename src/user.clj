@@ -115,8 +115,8 @@
              ::dt/rnd rnd
              ;;:train/annealing-fn (fn [x] (* 1.5 4 x))
              }
-        size 2
-        ratio 0.5
+        size       2
+        ratio      0.5
         pattern-00 {:train/inputs [0 0]
                     :train/range-down [0.0 0.0]
                     :train/range-up [0.0 0.0]
@@ -134,10 +134,10 @@
                     :train/range-up [0.0 0]
                     :train/goal [0]}
         batch-size 4
-        target 0.01]
+        target     0.01]
 
     (-> ctx
-        (tr/+config batch-size target)
+        (tr/+config batch-size)
         (tr/+training-data size
                            ratio
                            pattern-00

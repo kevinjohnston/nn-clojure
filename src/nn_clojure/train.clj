@@ -314,10 +314,9 @@
 
 (defn +config
   "Setup ctx to include needed configuration data for training."
-  [ctx batch-size target]
+  [ctx batch-size]
   (assoc ctx
-         :train/batch-size batch-size
-         :train/target target))
+         :train/batch-size batch-size))
 
 (defn train
   "Reducing function used to update ctx via an infinite sequence of training
