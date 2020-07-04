@@ -13,6 +13,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def logical-threads (. (Runtime/getRuntime) availableProcessors))
 
+(def size "The number of data points to generated from each pattern" 2)
+(def ratio "Ratio of generated data held back for testing" 0.5)
+(def batch-size "The number of data points used in each training batch" 4)
+(def target "The target error rate" 0.01)
+
 (def conf-quick "Merge with a ctx when training a neural network for quick and dirty results."
   {::dt/learning-rate        1.5
    :train/max-epochs      4000
@@ -38,14 +43,9 @@
     :train/buffer       1.0
     :train/eval-fn      #(< (tr/max-err %) 0.1)
     ::dt/rnd            dt/*r*
-    :train/batch-size   nil
+    :train/batch-size   4
     :train/target       nil
     :train/max-raw-data 10}))
-
-(def size "The number of data points to generated from each pattern" 2)
-(def ratio "Ratio of generated data held back for testing" 0.5)
-(def batch-size "The number of data points used in each training batch" 4)
-(def target "The target error rate" 0.01)
 
 ;;;;; training data
 ;;; xor
@@ -69,7 +69,6 @@
 (def +xor-training-data
   (fn [ctx]
     (-> ctx
-        (tr/+config batch-size)
         (tr/+training-data size
                            ratio
                            xor-pattern-00
@@ -97,7 +96,6 @@
 (def +and-training-data
   (fn [ctx]
     (-> ctx
-        (tr/+config batch-size)
         (tr/+training-data size
                            ratio
                            and-pattern-00
@@ -125,7 +123,6 @@
 (def +or-training-data
   (fn [ctx]
     (-> ctx
-        (tr/+config batch-size)
         (tr/+training-data size
                            ratio
                            or-pattern-00
@@ -153,7 +150,6 @@
 (def +nand-training-data
   (fn [ctx]
     (-> ctx
-        (tr/+config batch-size)
         (tr/+training-data size
                            ratio
                            nand-pattern-00
@@ -165,41 +161,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn finished
-  [{:train/keys [epochs target max-epochs min-epochs eval-fn] :as ctx}]
-  (if (or (nil? epochs) (< epochs min-epochs))
-    false
-    (or (#(< (tr/max-err %) target) ctx)
-        (> epochs max-epochs))))
-
-(def not-finished (comp not finished))
-
-(defn train
-  [{:train/keys [eval-fn] :as ctx}]
-  (first (drop-while
-          not-finished
-          (tr/train ctx))))
-
-(defn evaluate-training
-  "Use an evaluation function to determine if training was successful. Return a
-  string indicating the result."
-  [{:train/keys [eval-fn] :as ctx}]
-  (let [ctx          (tr/test ctx)
-        epochs       (-> ctx :train/epochs)]
-    (str  "Training "
-          (if (eval-fn ctx)
-            "SUCCEEDED"
-            "FAILED")
-          " after " epochs " epochs.")))
-
-(def xor
-  (merge (ctx) conf-quick))
-
 (defn -main
   [& args]
-  (let [ctx  (merge (ctx) conf-quick)]
-    (->> ctx
-         +xor-training-data
-         train
-         evaluate-training
-         println)))
+  (let [xor-ctx  (+xor-training-data  (merge (ctx) conf-quick))
+        and-ctx  (+and-training-data  (merge (ctx) conf-quick))
+        nand-ctx (+nand-training-data (merge (ctx) conf-quick))
+        or-ctx   (+or-training-data   (merge (ctx) conf-quick))
+        train-it (fn [[logic-type ctx]]
+                   (println (str logic-type
+                                 (-> ctx
+                                     tr/train
+                                     tr/evaluate-training))))]
+    (pmap train-it [["XOR "  xor-ctx]
+                    ["NAND " nand-ctx]
+                    ["AND "  and-ctx]
+                    ["OR "   or-ctx]])
+    ;; shutdown pmap threads as soon as they complete
+    (shutdown-agents)))

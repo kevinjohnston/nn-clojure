@@ -316,16 +316,10 @@
         combine-split-data
         update-ctx)))
 
-(defn +config
-  "Setup ctx to include needed configuration data for training."
-  [ctx batch-size]
-  (assoc ctx
-         :train/batch-size batch-size))
-
-(defn train
+(defn train-once
   "Reducing function used to update ctx via an infinite sequence of training
   data."
-  ([ctx] (reductions train ctx (training-seq ctx)))
+  ([ctx] (reductions train-once ctx (training-seq ctx)))
   ([ctx train-point]
    (-> (merge ctx train-point)
        anneal
@@ -335,6 +329,21 @@
        backward-propagation
        step
        clear)))
+
+(defn finished
+  [{:train/keys [epochs target max-epochs min-epochs eval-fn] :as ctx}]
+  (if (or (nil? epochs) (< epochs min-epochs))
+    false
+    (or (#(< (max-err %) target) ctx)
+        (> epochs max-epochs))))
+
+(def not-finished (comp not finished))
+
+(defn train
+  [ctx]
+  (first (drop-while
+          not-finished
+          (train-once ctx))))
 
 (defn test
   "Tests a trained network to determine final success."
@@ -346,3 +355,15 @@
                 record-error))
           (dissoc ctx :train/error)
           tests))
+
+(defn evaluate-training
+  "Use an evaluation function to determine if training was successful. Return a
+  string indicating the result."
+  [{:train/keys [eval-fn] :as ctx}]
+  (let [ctx          (test ctx)
+        epochs       (-> ctx :train/epochs)]
+    (str  "Training "
+          (if (eval-fn ctx)
+            "SUCCEEDED"
+            "FAILED")
+          " after " epochs " epochs.")))
