@@ -24,25 +24,23 @@
    :train/max-epochs  10000000
    :train/min-epochs         1
    :train/batch-size         4
-   :train/target             0.0001})
+   :train/target             0.00005})
 
 (defn ctx
   "Return a new ctx including a new, randomly generated, neural network to run."
   ([] (ctx [2 4 1]))
   ([layers]
-   (merge
-    {::dt/nn             (dt/nn layers)
-     ::dt/learning-rate  nil
-     :activation/fn-name ::dt/sigmoid
-     :train/max-epochs   nil
-     :train/min-epochs   nil
-     :train/buffer       1.0
-     :train/eval-fn      #(< (tr/max-err %) 0.1)
-     ::dt/rnd            (java.util.Random.)
-     :train/batch-size   nil
-     :train/target       nil
-     :train/max-raw-data 10}
-    conf-quick)))
+   {::dt/nn             (dt/nn layers)
+    ::dt/learning-rate  nil
+    :activation/fn-name ::dt/sigmoid
+    :train/max-epochs   nil
+    :train/min-epochs   nil
+    :train/buffer       1.0
+    :train/eval-fn      #(< (tr/max-err %) 0.1)
+    ::dt/rnd            dt/*r*
+    :train/batch-size   nil
+    :train/target       nil
+    :train/max-raw-data 10}))
 
 (def size "The number of data points to generated from each pattern" 2)
 (def ratio "Ratio of generated data held back for testing" 0.5)

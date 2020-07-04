@@ -1,5 +1,6 @@
 (ns nn-clojure.train
   "Functions used to train a neural network."
+  (:refer-clojure :exclude [shuffle test])
   (:require
    [clojure.spec.alpha :as s]
    [nn-clojure.datatypes :as dt]
@@ -55,7 +56,10 @@
 (declare pattern->data-set)
 (defn- realize-patterns
   [size]
-  (fn [patterns] (mapv #(pattern->data-set % size) patterns)))
+  (fn [patterns]
+    {:pre  [(vex :train/patterns patterns)]
+     :post [(vex :train/data-sets %)]}
+    (mapv #(pattern->data-set % size) patterns)))
 
 ;;;;; domain functions
 (defn- pattern->data-point
