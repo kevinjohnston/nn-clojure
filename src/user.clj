@@ -42,11 +42,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; using a standard network show how different configuration options affect
 ;;;;; how it learns
-(def ctx-quick    (merge (ctx) conf-quick))
-(def ctx-accurate (merge (ctx) conf-accurate))
-
 (def xor-2421-ctx
-  (merge ctx-quick
+  (merge conf-quick
          {::dt/nn             xor-2421-nn
           :activation/fn-name :nn-clojure.datatypes/sigmoid}))
 
