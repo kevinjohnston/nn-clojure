@@ -1,5 +1,4 @@
 (ns nn-clojure.core
-  "TODO namespace documentation"
   (:gen-class)
   (:require
    [clojure.spec.alpha :as s]
@@ -171,7 +170,7 @@
                    (println (str logic-type
                                  (-> ctx
                                      tr/train
-                                     tr/evaluate-training))))]
+                                     tr/evaluate-result))))]
     (pmap train-it [["XOR "  xor-ctx]
                     ["NAND " nand-ctx]
                     ["AND "  and-ctx]

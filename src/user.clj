@@ -1,4 +1,6 @@
 (ns user
+  "Define functions for interactive use at the repl along with comments to
+  facilitate understanding the codebase."
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
             [nn-clojure.core :refer :all]
@@ -155,7 +157,7 @@
    (let [ctx (setup)]
      (-> ctx
          tr/train
-         tr/evaluate-training))))
+         tr/evaluate-result))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Repl exploratory functions
@@ -175,4 +177,3 @@
   (let [num-threads (int (max (/ logical-threads 2) 1))]
     (println "Using" num-threads "thread(s) for training...")
     (pmap xor-train (range num-threads))))
-
