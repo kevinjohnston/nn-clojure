@@ -261,11 +261,10 @@
   (-> ctx
       ;; maybe change this to drop-keys
       (select-keys [::dt/nn
-                    ;;:activation/nn
                     :activation/fn-name
                     ::dt/goals
                     ::dt/learning-rate
-                    ;;::dt/rnd
+                    ::dt/rnd
 
                     :train/batch-size
                     :train/epoch
@@ -354,6 +353,7 @@
        clear)))
 
 (defn finished
+  "Returns true if the network no longer needs training, false otherwise."
   [{:train/keys [epochs target max-epochs min-epochs eval-fn] :as ctx}]
   (if (or (nil? epochs) (< epochs min-epochs))
     false
@@ -363,6 +363,8 @@
 (def not-finished (comp not finished))
 
 (defn train
+  "Train a network until it evaluates successfully or it has exceeded the max
+  number of trainings."
   [ctx]
   (first (drop-while
           not-finished
