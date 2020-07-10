@@ -25,15 +25,16 @@
    :train/target             0.01})
 (def conf-quick-description
   "Low but fast
-      target error rate < 0.01
-      learning rate 1.5)")
+      target error rate: < 0.01
+      learning rate:     1.5)")
 (def conf-accurate "Merge with a ctx when training a neural network for accurate results."
   {::dt/learning-rate        0.01
    :train/max-epochs  10000000
    :train/min-epochs         1
    :train/batch-size         4
    :train/target             0.00005})
-(def conf-accurate-description "High but slow
+(def conf-accurate-description
+  "High but slow
       target error rate: < 0.00005
       learning rate:     0.01)")
 

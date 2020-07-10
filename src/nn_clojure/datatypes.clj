@@ -13,10 +13,10 @@
       example:
         ::pos - a positive finite integer
 
-    - latteral -- these define types that are needed in the process of
-      modeling the domain process but aren't strictly part of the domain these
-      types tend to exist parallel to domain types or contain them but never be
-      contained by them.
+    - latterals -- these define types that are needed in the process of modeling
+      the domain process but aren't strictly part of the domain these types tend
+      to exist parallel to domain types or contain them but never be contained
+      by them.
       example:
         ::ctx - a hashmap used to contain domain types and other information
           that gets passed through the modeled
@@ -80,6 +80,9 @@
                #(s/gen (s/and ::number pos?))))
 (s/def ::not-neg (s/with-gen >=0
                    #(s/gen (s/and ::number >=0))))
+;;; laterals are defined after domain types due to containing domain types in
+;;;   their definitions
+
 ;;;;; domain types
 ;;; primitives
 (s/def ::weight ::number)
@@ -125,6 +128,7 @@
 (s/def :adjustments/neuron ::neuron)
 (s/def :adjustments/layer ::layer) ;; can fail
 
+;;; laterals
 ;; use custom generator since default is too slow
 (s/def :adjustments/nn (s/with-gen (s/and (s/coll-of ::layer :kind list?)
                                           not-empty
