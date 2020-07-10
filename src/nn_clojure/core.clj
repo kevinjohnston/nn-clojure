@@ -25,8 +25,8 @@
    :train/target             0.01})
 (def conf-quick-description
   "Low but fast
-    target error rate < 0.01
-    learning rate 1.5)")
+      target error rate < 0.01
+      learning rate 1.5)")
 (def conf-accurate "Merge with a ctx when training a neural network for accurate results."
   {::dt/learning-rate        0.01
    :train/max-epochs  10000000
@@ -34,8 +34,8 @@
    :train/batch-size         4
    :train/target             0.00005})
 (def conf-accurate-description "High but slow
-    target error rate < 0.00005
-    learning rate 0.01)")
+      target error rate: < 0.00005
+      learning rate:     0.01)")
 
 (defn ctx
   "Return a new ctx including a new, randomly generated, neural network to run."
@@ -179,7 +179,7 @@
 3: train a network to learn boolean NAND logic
 4: train a network to learn boolean XOR logic
 5: toggle the desired accuracy of the training
-    current accuracy: " (:description @selected-accuracy) "
+    current accuracy:    " (:description @selected-accuracy) "
 6: quit
 "))
   (let [input (read-line)]
@@ -201,59 +201,42 @@
 (defmulti train-nn (fn [user-selection ctx conf-style] user-selection))
 (defmethod train-nn :or
   [_ ctx conf-style]
-  (println (str "OR "
-                (-> ctx
-                    (merge conf-style)
-                    (+or-training-data)
-                    tr/train
-                    tr/evaluate-result))))
+  (str "OR "
+       (-> ctx
+           (merge conf-style)
+           (+or-training-data)
+           tr/train
+           tr/evaluate-result)))
 (defmethod train-nn :and
   [_ ctx conf-style]
-  (println (str "AND "
-                (-> ctx
-                    (merge conf-style)
-                    (+and-training-data)
-                    tr/train
-                    tr/evaluate-result))))
+  (str "AND "
+       (-> ctx
+           (merge conf-style)
+           (+and-training-data)
+           tr/train
+           tr/evaluate-result)))
 (defmethod train-nn :nand
   [_ ctx conf-style]
-  (println (str "NAND "
-                (-> ctx
-                    (merge conf-style)
-                    (+nand-training-data)
-                    tr/train
-                    tr/evaluate-result))))
+  (str "NAND "
+       (-> ctx
+           (merge conf-style)
+           (+nand-training-data)
+           tr/train
+           tr/evaluate-result)))
 (defmethod train-nn :xor
   [_ ctx conf-style]
-  (println (str "XOR "
-                (-> ctx
-                    (merge conf-style)
-                    (+xor-training-data)
-                    tr/train
-                    tr/evaluate-result))))
-
-(defn prompt-user
-  []
-  (let [user-selection (user-selection!)]
-    (case user-selection
-      :quit (System/exit 0)
-      (and (train-nn user-selection (ctx) (:conf @selected-accuracy)) (prompt-user)))))
+  (str "XOR "
+       (-> ctx
+           (merge conf-style)
+           (+xor-training-data)
+           tr/train
+           tr/evaluate-result)))
 
 (defn -main
   [& args]
-  (prompt-user)
-  #_(let [xor-ctx  (+xor-training-data  (merge (ctx) conf-quick))
-        and-ctx  (+and-training-data  (merge (ctx) conf-quick))
-        nand-ctx (+nand-training-data (merge (ctx) conf-quick))
-        or-ctx   (+or-training-data   (merge (ctx) conf-quick))
-        train-it (fn [[logic-type ctx]]
-                   (println (str logic-type
-                                 (-> ctx
-                                     tr/train
-                                     tr/evaluate-result))))]
-    (pmap train-it [["XOR "  xor-ctx]
-                    ["NAND " nand-ctx]
-                    ["AND "  and-ctx]
-                    ["OR "   or-ctx]])
-    ;; shutdown pmap threads as soon as they complete
-    (shutdown-agents)))
+  (let [user-selection (user-selection!)]
+    (case user-selection
+      :quit (System/exit 0)
+      (do
+        (println (train-nn user-selection (ctx) (:conf @selected-accuracy)))
+        (recur nil)))))
