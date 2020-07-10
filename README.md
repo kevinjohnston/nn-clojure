@@ -1,32 +1,38 @@
-# nn-clojure
+nn-clojure
+==========
 
-FIXME: description
+Project for me to explore clojure.spec, generators, and learn about neural networks.
 
-## Installation
+## Uses
 
-Download from http://example.com/FIXME.
+The code within shouldn't be used as a library due to faster neural network libraries existing in the jvm ecosystem. Instead this exists purely as a reference for myself.
+
+## Running
+
+### Good ways
+```bash
+docker login
+docker pull kevinjohnston/nn-clojure:1.0
+docker run -it kevinjohnston/nn-clojure:1.0
+```
+OR
+```bash
+lein uberjar
+java -jar ./target/uberjar/nn-clojure-0.1.0-SNAPSHOT-standalone.jar
+```
+
+### Bad way
+`lein run`
+    This approach isn't recommended due to lein calling `:pre` and `:post` checks
+    even if asserts are disabled in `project.clj`, ultimately running the project
+    this way will take an order of magnitude longer.
 
 ## Usage
 
-FIXME: explanation
+Once the application is running you'll be provided with a simple prompt to train a new network on a selected boolean logic (OR/AND/NAND/XOR) with adjustable accuracy. The training will continue until it succeeds or times out with a message indicating the result.
 
-    $ java -jar nn-clojure-0.1.0-standalone.jar [args]
+If exploring the code in a repl I recommend starting with the `user` namespace as it has comments and example configuration to act as a guide.
 
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
 
 ## License
 
