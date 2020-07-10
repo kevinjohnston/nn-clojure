@@ -78,11 +78,11 @@
 ;;;;; helper functions
 (declare pattern->data-set)
 (defn- realize-patterns
-  [size]
+  [num-data-points]
   (fn [patterns]
     {:pre  [(vex :train/patterns patterns)]
      :post [(vex :train/data-sets %)]}
-    (mapv #(pattern->data-set % size) patterns)))
+    (mapv #(pattern->data-set % num-data-points) patterns)))
 
 ;;;;; domain functions
 (defn- pattern->data-point
@@ -95,11 +95,11 @@
         range-down))
 
 (defn- pattern->data-set
-  [{:train/keys [goal] :as pattern} size]
+  [{:train/keys [goal] :as pattern} num-data-points]
   {:pre  [(vex :train/pattern pattern)]
    :post [(vex :train/data-set %)]}
   (let [randomized-inputs (mapv pattern->data-point
-                                (take size (repeat pattern)))]
+                                (take num-data-points (repeat pattern)))]
     {pattern {:train/inputs randomized-inputs
               :train/goal   goal}}))
 
@@ -228,11 +228,11 @@
     (number? s1) (+ s1 s2)))
 
 (defn- avg-adjustments
-  [s size]
+  [s batch-size]
   (cond
-    (vector? s) (mapv #(avg-adjustments % size) s)
-    (map? s)    (update-all s #(avg-adjustments % size))
-    (number? s) (/ s size)))
+    (vector? s) (mapv #(avg-adjustments % batch-size) s)
+    (map? s)    (update-all s #(avg-adjustments % batch-size))
+    (number? s) (/ s batch-size)))
 
 (defn- +backprop-results
   [ctx]
@@ -317,9 +317,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn +training-data
   "Create training data and add to ctx."
-  [{:keys [::dt/rnd] :as ctx} size ratio & patterns]
+  [{:keys [::dt/rnd] :as ctx} num-data-points ratio & patterns]
   (letfn [(patterns->data-sets [patterns]
-            ((realize-patterns size) patterns))
+            ((realize-patterns num-data-points) patterns))
           (reserve-test-data [data-sets]
             (map #(data-set->split-data % ratio rnd) data-sets))
           (combine-split-data [split-data]
