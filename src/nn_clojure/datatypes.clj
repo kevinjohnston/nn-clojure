@@ -35,6 +35,7 @@
         ::neuron -- a hashmap that contains ::weight, ::bias and at times other
           domain information."
 
+  (:refer-clojure :exclude [rand repeatedly])
   (:require
    [nn-clojure.util :refer :all]
    [clojure.spec.alpha :as s]
@@ -167,9 +168,11 @@
                                     :train/range-up
                                     :train/range-down
                                     :train/goal]))
+(s/def :train/patterns (s/coll-of :train/pattern))
 (s/def :train/ratio :train/domain)
 (s/def :train/data-point (s/coll-of :train/domain :kind vector?))
 (s/def :train/data-set map?)
+(s/def :train/data-sets (s/coll-of :train/data-set))
 (s/def :train/example (s/tuple :train/data-point
                                :train/goal
                                :train/pattern))

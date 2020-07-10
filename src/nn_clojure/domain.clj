@@ -1,5 +1,40 @@
 (ns nn-clojure.domain
-  "TODO create namespace doc"
+  "Provide domain logic for forward and back propagation.
+
+  Forward propagation is the process of calculating the output of a neural
+  network. This requires calculating the ouput for each layer, which in turn
+  requires calculating the output of each neuron. These outputs will need to
+  be stored for back propagation to proceed.
+
+  Back propagation is the process of adjusting the weights and bias of each
+  neuron in the neural network in order to reduce the difference between a
+  neural networks output and the desired output. This can be though of as
+  taking a step in a large multi-dimensional space (aka gradient descent).
+
+  Back propagation uses multi-dimensional calculus to calculate the how much
+  each weight and bias of each neuron contributes to the final error. Partial
+  derivative functions are named to reflect their calculus representations.
+  e.g. (defn dE|dA ....) this function is the partial derivative (d) of the
+  total error (E) with respect to (|) the partial derivative (d) of a neurons
+  output (A).
+    - math symbols used
+      A -- the output of a nueron after applying the activation function to the
+           neurons total inputs
+      B -- the bias of a neuron
+      E -- the error calculated for a specific run
+      W -- the weight of a neuron
+      Z -- the sum total inputs to a neuron after adjusting for weight and bias
+    - subscripts and indicators
+      l -- subscript showing that a math symbol is referring to a node in a
+           hidden layer (rather than an output layer). note: input layers don't
+           need to have their weights and biases calculated since they are
+           modeled as simple numbers.
+      + -- used to indicate that the value results from a sum of it's partials
+           e.g. (defn dE+|dAl ....) this functions sums up every dE|dAl in a
+           layer
+
+  see 3blue1brown video for better understanding of neural networks
+    https://www.youtube.com/watch?v=aircAruvnKk"
   (:require
    [clojure.spec.alpha :as s]
    [nn-clojure.datatypes :as dt]
@@ -338,4 +373,3 @@
   {:pre  [(vex ::dt/ctx ctx)]
    :post [(vex ::dt/number %)]}
   (sum (map error goals (last nn))))
-  

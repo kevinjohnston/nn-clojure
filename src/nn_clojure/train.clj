@@ -1,5 +1,27 @@
 (ns nn-clojure.train
-  "Functions used to train a neural network."
+  "Functions used to train a neural network.
+
+  Terminology:
+
+    Patterns -- a template specifying how examples can be generated.
+    Training Data -- the list of examples that will be used to train the neural
+      network
+    Test Data -- the list of examples that is set aside to be used to validate a
+      neural network after training is completed. note: all training and test
+      data are generated at the same time, then randomly split into training
+      and test data.
+
+    Examples -- an input and output with a reference to the pattern that it was
+      generated from.
+    Batches -- a collection of examples
+    Epochs -- a collection of batches
+
+  Some basic statistics about errors are tracked:
+    min, max, mean, standard deviation, variance, count
+  this data can be used by evaluation functions to determine when a training
+  should stop. note: not all results are stored due to performance issues with
+  recalculating these values after every run. see max-raw-data-num"
+  (:refer-clojure :exclude [shuffle test])
   (:require
    [clojure.spec.alpha :as s]
    [nn-clojure.datatypes :as dt]
@@ -10,7 +32,9 @@
 ;;;;; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; configuration defaults
-(def max-raw-data-num 10)
+(def max-raw-data-num
+  "The default value to use if :train/max-raw-data is undefined in the ctx"
+  10)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Functions
@@ -55,7 +79,10 @@
 (declare pattern->data-set)
 (defn- realize-patterns
   [size]
-  (fn [patterns] (mapv #(pattern->data-set % size) patterns)))
+  (fn [patterns]
+    {:pre  [(vex :train/patterns patterns)]
+     :post [(vex :train/data-sets %)]}
+    (mapv #(pattern->data-set % size) patterns)))
 
 ;;;;; domain functions
 (defn- pattern->data-point
@@ -234,11 +261,10 @@
   (-> ctx
       ;; maybe change this to drop-keys
       (select-keys [::dt/nn
-                    ;;:activation/nn
                     :activation/fn-name
                     ::dt/goals
                     ::dt/learning-rate
-                    ;;::dt/rnd
+                    ::dt/rnd
 
                     :train/batch-size
                     :train/epoch
@@ -253,6 +279,7 @@
                     :train/annealing-fn
                     :train/eval-fn
                     :train/max-epochs
+                    :train/min-epochs
                     :train/buffer
                     ])))
 
@@ -311,17 +338,10 @@
         combine-split-data
         update-ctx)))
 
-(defn +config
-  "Setup ctx to include needed configuration data for training."
-  [ctx batch-size target]
-  (assoc ctx
-         :train/batch-size batch-size
-         :train/target target))
-
-(defn train
+(defn train-once
   "Reducing function used to update ctx via an infinite sequence of training
   data."
-  ([ctx] (reductions train ctx (training-seq ctx)))
+  ([ctx] (reductions train-once ctx (training-seq ctx)))
   ([ctx train-point]
    (-> (merge ctx train-point)
        anneal
@@ -332,7 +352,25 @@
        step
        clear)))
 
-(defn test
+(defn finished
+  "Returns true if the network no longer needs training, false otherwise."
+  [{:train/keys [epochs target max-epochs min-epochs eval-fn] :as ctx}]
+  (if (or (nil? epochs) (< epochs min-epochs))
+    false
+    (or (eval-fn ctx)
+        (> epochs max-epochs))))
+
+(def not-finished (comp not finished))
+
+(defn train
+  "Train a network until it evaluates successfully or it has exceeded the max
+  number of trainings."
+  [ctx]
+  (first (drop-while
+          not-finished
+          (train-once ctx))))
+
+(defn evaluate
   "Tests a trained network to determine final success."
   [{:keys [:train/tests] :as ctx}]
   (reduce (fn [ctx test]
@@ -342,3 +380,15 @@
                 record-error))
           (dissoc ctx :train/error)
           tests))
+
+(defn evaluate-result
+  "Use an evaluation function to determine if training was successful. Return a
+  string indicating the result."
+  [{:train/keys [eval-fn] :as ctx}]
+  (let [ctx          (evaluate ctx)
+        epochs       (-> ctx :train/epochs)]
+    (str  "Training "
+          (if (eval-fn ctx)
+            "SUCCEEDED"
+            "FAILED")
+          " after " epochs " epochs.")))
